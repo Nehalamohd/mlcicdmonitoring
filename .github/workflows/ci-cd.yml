@@ -1,0 +1,54 @@
+name: ML CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-train-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1️⃣ Checkout code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # 2️⃣ Setup Python
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    # 3️⃣ Install dependencies
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    # 4️⃣ Train model
+    - name: Train model
+      run: python src/train.py
+
+    # 5️⃣ Build Docker image
+    - name: Build Docker image
+      run: docker build -t ml-cicd .
+
+    # 6️⃣ Run Docker container
+    - name: Run Docker container
+      run: docker run -d -p 5000:5000 --name ml-cicd-container ml-cicd
+
+    # 7️⃣ Wait a few seconds for the container to start
+    - name: Wait for container to start
+      run: sleep 10
+
+    # 8️⃣ Check health endpoint
+    - name: Check health endpoint
+      run: |
+        HEALTH=$(curl -s http://localhost:5000/health)
+        echo "Health response: $HEALTH"
+        if [ "$HEALTH" != "Service is running" ]; then
+          echo "Health check failed!"
+          exit 1
+        fi
+
+    # 9️⃣ (Optional) Stop container after CI/CD run
+    - name: Stop Docker container
+      run: docker stop ml-cicd-container
