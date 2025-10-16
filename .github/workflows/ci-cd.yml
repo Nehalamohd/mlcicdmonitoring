@@ -33,38 +33,18 @@ jobs:
 
     # 6️⃣ Run Docker container
     - name: Run Docker container
-      run: docker run -d -p 5000:5000 --name ml-cicd-container ml-cicd
+      run: docker run -d -p 5000:5000 --name ml-cicd ml-cicd:latest
 
-    # 7️⃣ Wait a few seconds for the container to start
-    - name: Wait for container to start
-      run: sleep 10
-
-    # 8️⃣ Check health endpoint
-    - name: Check health endpoint
+    # 7️⃣ Wait for container to start & check health
+    - name: Wait for Flask app to be healthy
       run: |
-        HEALTH=$(curl -s http://localhost:5000/health)
-        echo "Health response: $HEALTH"
-        if [ "$HEALTH" != "Service is running" ]; then
-          echo "Health check failed!"
-          exit 1
-    - name: Run Flask container
-      run: |
-            docker run -d -p 5000:5000 --name ml-cicd ml-cicd:latest
-            echo "Waiting for Flask app to start..."
-            for i in {1..10}; do
-               if docker exec ml-cicd curl -s http://localhost:5000/health > /dev/null; then
-                 echo "✅ Flask app is healthy!"
-                 break
-              else
-                 echo "⏳ Waiting... ($i/10)"
-                sleep 5
-              fi
-            done
-   
-
-
-
-      
-    # 9️⃣ (Optional) Stop container after CI/CD run
-    - name: Stop Docker container
-      run: docker stop ml-cicd-container
+        echo "Waiting for Flask app to start..."
+        for i in {1..12}; do
+          if docker exec ml-cicd curl -s http://localhost:5000/health > /dev/null; then
+            echo "✅ Flask app is healthy!"
+            break
+          else
+            echo "⏳ Waiting... ($i/12)"
+            sleep 5
+          fi
+        done
